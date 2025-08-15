@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Assistant</title>
+<style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            margin: 0; padding: 0; overflow: hidden; height: 100vh; width: 100vw;
+            background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+            font-family: 'Courier New', monospace;
+        }
+
+        #video {
+            position: fixed; bottom: 20px; left: 20px; width: 320px; height: 240px;
+            object-fit: cover; transform: scaleX(-1); border-radius: 8px;
+            z-index: 19; background: black;
+            border: 1px solid #333;
+        }
+
+        #overlay {
+            position: fixed; bottom: 20px; left: 20px; width: 320px; height: 240px;
+            pointer-events: none; z-index: 20;
+        }
+
+        .robot-container {
+            position: fixed; top: 50%; left: 50%; width: 100vw; height: 100vh;
+            transform: translate(-50%, -50%); display: flex; flex-direction: column;
+            align-items: center; justify-content: center; z-index: 10; user-select: none;
+            background: rgba(17, 17, 17, 0.9); padding: 30px 50px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.45), inset 0 0 1px rgba(255,255,255,0.08);
+        }
+
+        .eyes-container {
+            display: flex;
+            gap: 60px;
+            margin-bottom: 30px;
+        }
+
+        .eye {
+            width: 560px;
+            height: 360px;
+            background: rgb(255, 255, 255);
+            border-radius: 60% / 80%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: inset 0 0 15px #666;
+            position: relative;
+            overflow: hidden;
+            animation: blink 4s infinite;
+        }
+
+        .eye:nth-child(2) { animation-delay: 0.2s; }
+
+        @keyframes blink {
+            0%, 90%, 100% { transform: scaleY(1); }
+            95% {  transform: scaleY(0); }
+        }   
+
+        .pupil {
+            width: 200px;
+            height: 200px;
+            background: #0000ff;
+            border-radius: 50%;
+            position: relative;
+            transition: transform 0.1s ease;
+            box-shadow: 0 0 20px rgba(0, 198, 255, 0.25), inset 0 0 20px rgba(0,0,0,0.7);
+        }
+
+        .mouth {
+            padding-top: 8%; display: flex; gap: 10px; height: 150px; align-items: center;
+        }
+
+        .bar {
+            width: 8px; background: #666;
+            height: 20px; border-radius: 4px; transition: transform 0.15s ease;
+            transform-origin: center;
+        }
+
+        .bar.speaking {
+            animation: none;
+        }
+
+        .bar.speaking.random-1 { animation: speak1 0.2s ease-in-out infinite alternate; }
+        .bar.speaking.random-2 { animation: speak2 0.3s ease-in-out infinite alternate; }
+        .bar.speaking.random-3 { animation: speak3 0.25s ease-in-out infinite alternate; }
+        .bar.speaking.random-4 { animation: speak4 0.35s ease-in-out infinite alternate; }
+        .bar.speaking.random-5 { animation: speak5 0.15s ease-in-out infinite alternate; }
+        .bar.speaking.random-6 { animation: speak6 0.4s ease-in-out infinite alternate; }
+        .bar.speaking.random-7 { animation: speak7 0.28s ease-in-out infinite alternate; }
+        .bar.speaking.random-8 { animation: speak8 0.22s ease-in-out infinite alternate; }
+        .bar.speaking.random-9 { animation: speak9 0.32s ease-in-out infinite alternate; }
+        .bar.speaking.random-10 { animation: speak10 0.18s ease-in-out infinite alternate; }
+        .bar.speaking.random-11 { animation: speak11 0.26s ease-in-out infinite alternate; }
+        .bar.speaking.random-12 { animation: speak12 0.31s ease-in-out infinite alternate; }
+        .bar.speaking.random-13 { animation: speak13 0.24s ease-in-out infinite alternate; }
+        .bar.speaking.random-14 { animation: speak14 0.29s ease-in-out infinite alternate; }
+        .bar.speaking.random-15 { animation: speak15 0.21s ease-in-out infinite alternate; }
+
+        @keyframes speak1 { 0% { transform: scaleY(1); } 100% { transform: scaleY(2.5); } }
+        @keyframes speak2 { 0% { transform: scaleY(1); } 100% { transform: scaleY(3.2); } }
+        @keyframes speak3 { 0% { transform: scaleY(1); } 100% { transform: scaleY(2.8); } }
+        @keyframes speak4 { 0% { transform: scaleY(1); } 100% { transform: scaleY(3.5); } }
+        @keyframes speak5 { 0% { transform: scaleY(1); } 100% { transform: scaleY(2.1); } }
+        @keyframes speak6 { 0% { transform: scaleY(1); } 100% { transform: scaleY(3.8); } }
+        @keyframes speak7 { 0% { transform: scaleY(1); } 100% { transform: scaleY(2.9); } }
+        @keyframes speak8 { 0% { transform: scaleY(1); } 100% { transform: scaleY(2.3); } }
+        @keyframes speak9 { 0% { transform: scaleY(1); } 100% { transform: scaleY(3.1); } }
+        @keyframes speak10 { 0% { transform: scaleY(1); } 100% { transform: scaleY(2.6); } }
+        @keyframes speak11 { 0% { transform: scaleY(1); } 100% { transform: scaleY(3.4); } }
+        @keyframes speak12 { 0% { transform: scaleY(1); } 100% { transform: scaleY(2.7); } }
+        @keyframes speak13 { 0% { transform: scaleY(1); } 100% { transform: scaleY(3.0); } }
+        @keyframes speak14 { 0% { transform: scaleY(1); } 100% { transform: scaleY(2.4); } }
+        @keyframes speak15 { 0% { transform: scaleY(1); } 100% { transform: scaleY(3.3); } }
+
+        .presi-chat-btn {
+            position: fixed; top: 30px; left: 30px; 
+            background: rgba(0, 0, 255, 0.2);
+            border: 1px solid #666; color: #ffffff; padding: 12px 20px;
+            border-radius: 6px; cursor: pointer; font-family: 'Courier New', monospace;
+            font-size: 16px; font-weight: bold; transition: all 0.3s ease; z-index: 1000;
+            text-decoration: none; display: inline-block;
+        }
+
+        .presi-chat-btn:hover {
+            background: #0066ff; 
+            border-color: #0066ff;
+        }
+
+        .controls {
+            position: fixed;
+            right: 40px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 1px solid #666;
+            background: rgba(0, 0, 0, 0.5);
+            color: #ccc;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .control-btn:hover {
+            background: #666;
+            color: #fff;
+        }
+
+        .control-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .control-btn:disabled:hover {
+            background: rgba(0, 0, 0, 0.5);
+            color: #ccc;
+        }
+
+        .recording {
+            animation: pulse 1.5s infinite;
+            background: #ff4444;
+            color: white;
+            border-color: #ff4444;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .transcript-container {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 350px;
+            max-height: 300px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+
+        .transcript-container::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .transcript-container::-webkit-scrollbar-track {
+            background: #222;
+        }
+
+        .transcript-container::-webkit-scrollbar-thumb {
+            background: #666;
+            border-radius: 2px;
+        }
+
+        .transcript-item {
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin: 8px 0;
+            animation: fadeIn 0.3s ease;
+            border: 1px solid #333;
+            font-size: 14px;
+            line-height: 1.4;
+            color: #ffffff;
+        }
+
+        .user-message {
+            background: rgba(0, 100, 255, 0.15);
+            margin-left: 20px;
+            border-left: 3px solid #0066ff;
+        }
+
+        .system-message {
+            background: rgba(100, 100, 100, 0.15);
+            margin-right: 20px;
+            border-left: 3px solid #666;
+            opacity: 0.8;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .status-indicator {
+            position: fixed;
+            top: 80px;
+            left: 30px;
+            font-size: 14px;
+            padding: 10px 15px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid #333;
+            border-radius: 6px;
+            z-index: 1000;
+            color: #ccc;
+        }
+
+        .listening {
+            animation: statusBlink 1s infinite;
+        }
+
+        @keyframes statusBlink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.6; }
+        }
+
+        .volume-indicator {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            width: 200px;
+            height: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #333;
+            border-radius: 4px;
+            overflow: hidden;
+            z-index: 1000;
+        }
+
+        .volume-level {
+            height: 100%;
+            background: #666;
+            width: 0%;
+            transition: width 0.1s ease;
+        }
+
+        .error {
+            position: fixed;
+            top: 80px;
+            left: 30px;
+            background: rgba(255, 0, 0, 0.3);
+            padding: 10px 15px;
+            border-radius: 6px;
+            border: 1px solid #ff4444;
+            z-index: 1000;
+            max-width: 300px;
+            color: #fff;
+        }
+
+        .placeholder-text {
+            opacity: 0.5;
+            font-style: italic;
+            text-align: center;
+            font-size: 13px;
+            color: #999;
+        }
+
+        .clear-btn {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid #666;
+            color: #ccc;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .clear-btn:hover {
+            background: #ff4444;
+            color: white;
+            border-color: #ff4444;
+        }
+
+        @media (max-width: 1400px) {
+            .robot-container { width: 1000px; height: 450px; padding: 20px 40px; }
+            .eye { width: 400px; height: 260px; }
+            .pupil { width: 140px; height: 140px; }
+            #video, #overlay { width: 240px; height: 180px; }
+        }
+
+        @media (max-width: 900px) {
+            .robot-container { width: 700px; height: 320px; padding: 15px 30px; }
+            .eye { width: 280px; height: 180px; }
+            .pupil { width: 100px; height: 100px; }
+            #video, #overlay { width: 180px; height: 135px; }
+        }
+
+        @media (max-width: 600px) {
+            .robot-container { width: 95vw; height: 250px; padding: 10px 20px; }
+            .eye { width: 45vw; height: 25vw; }
+            .pupil { width: 15vw; height: 15vw; }
+            #video, #overlay { width: 140px; height: 105px; }
+        }
+
+        @media (max-width: 400px) {
+            .robot-container { width: 90vw; height: 180px; padding: 8px 15px; }
+            .eye { width: 40vw; height: 22vw; }
+            .pupil { width: 12vw; height: 12vw; }
+            #video, #overlay { width: 110px; height: 82.5px; }
+        }
+    </style>
+</head>
+<body>
+    <video id="video" autoplay muted playsinline></video>
+    <canvas id="overlay" width="320" height="240"></canvas>
+
+    <div class="status-indicator" id="statusIndicator">Ready</div>
+    
+    <div class="volume-indicator">
+        <div class="volume-level" id="volumeLevel"></div>
+    </div>
+    
+    <div class="controls">
+        <button class="control-btn" id="toggleBtn" title="Toggle Recording">▶</button>
+    </div>
+    
+    <div class="transcript-container" id="transcriptContainer">
+        <button class="clear-btn" id="clearBtn" title="Clear History">×</button>
+        <div class="placeholder-text">Voice transcriptions will appear here...</div>
+    </div>
+    
+    <div id="errorContainer"></div>
+
+    <div class="robot-container">
+        <div class="eyes-container">
+            <div class="eye"><div class="pupil"></div></div>
+            <div class="eye"><div class="pupil"></div></div>
+        </div>
+        <div class="mouth" id="soundwave">
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+        </div>
+    </div>
+
+    <script>
+        class VoiceTranscriber {
+            constructor() {
+                this.recorder = null;
+                this.isListening = false;
+                this.isProcessing = false;
+                this.isSpeaking = false;
+                this.audioContext = null;
+                this.analyser = null;
+                this.microphone = null;
+                this.dataArray = null;
+                this.currentAudio = null;
+                this.bars = document.querySelectorAll('.bar');
+                this.audioChunks = [];
+                this.recordedBlob = null;
+                
+                this.statusIndicator = document.getElementById('statusIndicator');
+                this.transcriptContainer = document.getElementById('transcriptContainer');
+                this.toggleBtn = document.getElementById('toggleBtn');
+                this.clearBtn = document.getElementById('clearBtn');
+                this.errorContainer = document.getElementById('errorContainer');
+                this.volumeLevel = document.getElementById('volumeLevel');
+                
+                this.bellSound = this.createBellSound();
+                this.setupEventListeners();
+                
+                // STT API endpoint - change this to match your Python FastAPI server
+                this.STT_ENDPOINT = 'https://ku-sst.onrender.com/stt';
+                // Original LLM TTS endpoint
+                this.LLM_TTS_ENDPOINT = 'https://ku-tts.onrender.com/ask';
+            }
+
+            createBellSound() {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                return () => {
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.1);
+                    
+                    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                    
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.3);
+                };
+            }
+
+            async startVolumeMonitoring() {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    this.analyser = this.audioContext.createAnalyser();
+                    this.microphone = this.audioContext.createMediaStreamSource(stream);
+                    
+                    this.analyser.fftSize = 256;
+                    const bufferLength = this.analyser.frequencyBinCount;
+                    this.dataArray = new Uint8Array(bufferLength);
+                    
+                    this.microphone.connect(this.analyser);
+                    this.updateVolumeLevel();
+                } catch (error) {
+                    console.error('Error accessing microphone:', error);
+                    this.showError('Microphone access denied');
+                }
+            }
+
+            updateVolumeLevel() {
+                if (!this.analyser || !this.isListening) {
+                    this.volumeLevel.style.width = '0%';
+                    return;
+                }
+                
+                this.analyser.getByteFrequencyData(this.dataArray);
+                const average = this.dataArray.reduce((a, b) => a + b) / this.dataArray.length;
+                const percentage = Math.min((average / 128) * 100, 100);
+                
+                this.volumeLevel.style.width = `${percentage}%`;
+                
+                if (this.isListening) {
+                    requestAnimationFrame(() => this.updateVolumeLevel());
+                }
+            }
+
+            setupEventListeners() {
+                this.toggleBtn.addEventListener('click', () => this.toggleListening());
+                this.clearBtn.addEventListener('click', () => this.clearHistory());
+            }
+
+            toggleListening() {
+                if (this.isListening) {
+                    this.stopListening();
+                } else {
+                    this.startListening();
+                }
+            }
+
+            async startListening() {
+                if (this.currentAudio && !this.currentAudio.paused) {
+                    this.currentAudio.pause();
+                    this.currentAudio.currentTime = 0;
+                    this.isSpeaking = false;
+                    this.updateUI();
+                }
+                
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    
+                    // Choose supported format for recording
+                    let mimeType = "";
+                    if (MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) {
+                        mimeType = "audio/webm;codecs=opus";
+                    } else if (MediaRecorder.isTypeSupported("audio/ogg;codecs=opus")) {
+                        mimeType = "audio/ogg;codecs=opus";
+                    } else if (MediaRecorder.isTypeSupported("audio/mpeg")) {
+                        mimeType = "audio/mpeg";
+                    } else {
+                        mimeType = ""; // default
+                    }
+
+                    this.recorder = new MediaRecorder(stream, { mimeType });
+                    this.audioChunks = [];
+                    
+                    this.recorder.ondataavailable = (e) => {
+                        if (e.data.size > 0) this.audioChunks.push(e.data);
+                    };
+                    
+                    this.recorder.onstop = () => {
+                        const blob = new Blob(this.audioChunks, { type: mimeType || "audio/webm" });
+                        this.recordedBlob = blob;
+                        this.sendAudioToSTT(blob);
+                    };
+                    
+                    this.recorder.start();
+                    this.isListening = true;
+                    this.toggleBtn.textContent = '⏸';
+                    this.toggleBtn.title = 'Stop Recording';
+                    this.toggleBtn.classList.add('recording');
+                    this.updateUI();
+                    this.startVolumeMonitoring();
+                    this.clearError();
+                    this.addToTranscript('Started listening...', 'system');
+                    
+                } catch (error) {
+                    console.error('Microphone access error:', error);
+                    this.showError('Please allow microphone access to use voice recognition.');
+                }
+            }
+
+            stopListening() {
+                this.isListening = false;
+                if (this.recorder && this.recorder.state !== "inactive") {
+                    this.recorder.stop();
+                }
+                if (this.audioContext) {
+                    this.audioContext.close();
+                }
+                this.toggleBtn.textContent = '▶';
+                this.toggleBtn.title = 'Start Recording';
+                this.toggleBtn.classList.remove('recording');
+                this.updateUI();
+                this.addToTranscript('Stopped listening', 'system');
+            }
+
+            async sendAudioToSTT(audioBlob) {
+                this.isProcessing = true;
+                this.updateUI();
+                
+                try {
+                    // Safely determine extension
+                    let extension = "webm"; // default
+                    if (audioBlob.type) {
+                        const parts = audioBlob.type.split("/");
+                        if (parts.length === 2 && parts[1]) {
+                            extension = parts[1].split(";")[0]; // Remove codec info
+                        }
+                    }
+
+                    const formData = new FormData();
+                    formData.append("file", audioBlob, "speech." + extension);
+                    
+                    const response = await fetch(this.STT_ENDPOINT, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`STT Server error: ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    console.log('STT response:', data); // Debug log
+                    
+                    if (data.text && data.text.trim()) {
+                        this.bellSound();
+                        this.addToTranscript(data.text.trim(), 'user');
+                        this.processUserInput(data.text.trim());
+                    } else {
+                        this.showError('No speech detected in audio');
+                        this.resetToListening();
+                    }
+                    
+                } catch (error) {
+                    console.error('Error with STT:', error);
+                    this.showError('Failed to transcribe speech: ' + error.message);
+                    this.resetToListening();
+                }
+            }
+
+            async processUserInput(transcript) {
+                try {
+                    const response = await fetch(this.LLM_TTS_ENDPOINT, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ prompt: transcript, lang: 'en' })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`LLM Server error: ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    console.log('LLM TTS response:', data); // Debug log
+                    
+                    if (data.text) {
+                        this.addToTranscript(data.text, 'system');
+                    }
+                    
+                    if (data.audio) {
+                        console.log('Audio data received, length:', data.audio.length); // Debug log
+                        await this.speakResponse(data.audio);
+                    } else {
+                        console.log('No audio data in response'); // Debug log
+                    }
+                    
+                } catch (error) {
+                    console.error('Error processing request:', error);
+                    this.showError('Failed to get response from server');
+                    const errorMessage = "I'm sorry, I couldn't process your request at the moment.";
+                    this.addToTranscript(errorMessage, 'system');
+                }
+                
+                this.resetToListening();
+            }
+
+            async speakResponse(audioData) {
+                return new Promise((resolve) => {
+                    this.isSpeaking = true;
+                    this.updateUI();
+                    this.animateMouth(true);
+
+                    let audio;
+                    
+                    if (audioData.startsWith('data:')) {
+                        audio = new Audio(audioData);
+                    } else if (audioData.startsWith('http')) {
+                        audio = new Audio(audioData);
+                    } else {
+                        audio = new Audio(`data:audio/wav;base64,${audioData}`);
+                    }
+
+                    audio.playbackRate = 1.25;
+                    this.currentAudio = audio;
+
+                    audio.onended = () => {
+                        this.isSpeaking = false;
+                        this.currentAudio = null;
+                        this.updateUI();
+                        this.animateMouth(false);
+                        resolve();
+                    };
+                    
+                    audio.onerror = (error) => {
+                        console.error('Audio playback error:', error);
+                        this.isSpeaking = false;
+                        this.currentAudio = null;
+                        this.updateUI();
+                        this.animateMouth(false);
+                        this.showError('Failed to play audio response');
+                        resolve();
+                    };
+
+                    audio.play().catch(error => {
+                        console.error('Audio play error:', error);
+                        this.isSpeaking = false;
+                        this.currentAudio = null;
+                        this.updateUI();
+                        this.animateMouth(false);
+                        this.showError('Failed to play audio');
+                        resolve();
+                    });
+                });
+            }
+
+            animateMouth(speaking) {
+                this.bars.forEach((bar, index) => {
+                    if (speaking) {
+                        bar.classList.add('speaking');
+                        bar.classList.add(`random-${index + 1}`);
+                    } else {
+                        bar.classList.remove('speaking');
+                        bar.classList.remove(`random-${index + 1}`);
+                    }
+                });
+            }
+
+            resetToListening() {
+                this.isProcessing = false;
+                this.isSpeaking = false;
+                
+                // Auto-restart listening after a brief pause
+                setTimeout(() => {
+                    if (!this.isListening) {
+                        this.startListening();
+                    }
+                }, 1000);
+                
+                this.updateUI();
+            }
+
+            updateUI() {
+                if (this.isSpeaking) {
+                    this.statusIndicator.className = 'status-indicator';
+                    this.statusIndicator.textContent = '🔊 Speaking...';
+                } else if (this.isProcessing) {
+                    this.statusIndicator.className = 'status-indicator';
+                    this.statusIndicator.textContent = '⚡ Processing...';
+                } else if (this.isListening) {
+                    this.statusIndicator.className = 'status-indicator listening';
+                    this.statusIndicator.textContent = '🎤 Listening...';
+                } else {
+                    this.statusIndicator.className = 'status-indicator';
+                    this.statusIndicator.textContent = 'Ready';
+                }
+            }
+
+            addToTranscript(text, sender) {
+                const item = document.createElement('div');
+                item.className = `transcript-item ${sender}-message`;
+                item.textContent = text;
+                
+                // Clear placeholder if this is the first real transcript
+                const placeholder = this.transcriptContainer.querySelector('.placeholder-text');
+                if (placeholder) {
+                    placeholder.remove();
+                }
+                
+                this.transcriptContainer.appendChild(item);
+                this.transcriptContainer.scrollTop = this.transcriptContainer.scrollHeight;
+            }
+
+            clearHistory() {
+                this.transcriptContainer.innerHTML = `
+                    <button class="clear-btn" id="clearBtn" title="Clear History">×</button>
+                    <div class="placeholder-text">Voice transcriptions will appear here...</div>
+                `;
+                // Re-attach event listener
+                document.getElementById('clearBtn').addEventListener('click', () => this.clearHistory());
+            }
+
+            showError(message) {
+                this.errorContainer.innerHTML = `<div class="error">${message}</div>`;
+                setTimeout(() => this.clearError(), 4000);
+            }
+
+            clearError() {
+                this.errorContainer.innerHTML = '';
+            }
+        }
+
+        // Face tracking functionality
+        const video = document.getElementById('video');
+        const overlay = document.getElementById('overlay');
+        const ctx = overlay.getContext('2d');
+        const pupils = document.querySelectorAll('.pupil');
+        const eyes = document.querySelectorAll('.eye');
+
+        const MODEL_INPUT_WIDTH = 320;
+        const MODEL_INPUT_HEIGHT = 240;
+
+        navigator.mediaDevices.getUserMedia({ video: { width: MODEL_INPUT_WIDTH, height: MODEL_INPUT_HEIGHT, facingMode: 'user' } })
+            .then(stream => { video.srcObject = stream; })
+            .catch(err => { console.error('Camera error:', err); });
+
+        const SMOOTHING_ALPHA = 1;
+        const MOVE_THRESHOLD = 1;
+
+        let lastMoveX = 0;
+        let lastMoveY = 0;
+        let targetMoveX = 0;
+        let targetMoveY = 0;
+
+        let lostDetectionTime = null;
+        const WAIT_BEFORE_RESET_MS = 5000;
+        let returningToCenter = false;
+
+        function updatePupilsByScreenPosition(boxX, boxY, boxW, boxH) {
+            if (!pupils || !eyes) return;
+
+            const screenCenterX = window.innerWidth / 2;
+            const screenCenterY = window.innerHeight / 2;
+
+            const scaleX = window.innerWidth / MODEL_INPUT_WIDTH;
+            const scaleY = window.innerHeight / MODEL_INPUT_HEIGHT;
+
+            const detectedCenterX = (boxX + boxW / 2) * scaleX;
+            const detectedCenterY = (boxY + boxH / 2) * scaleY;
+
+            let dx = detectedCenterX - screenCenterX;
+            let dy = detectedCenterY - screenCenterY;
+
+            const eyeRect = eyes[0].getBoundingClientRect();
+            const pupilRect = pupils[0].getBoundingClientRect();
+
+            const maxX = (eyeRect.width - pupilRect.width) / 2 - 5;
+            const maxY = (eyeRect.height - pupilRect.height) / 2 - 5;
+
+            const maxScreenDx = window.innerWidth / 2;
+            const maxScreenDy = window.innerHeight / 2;
+
+            let normX = dx / maxScreenDx;
+            let normY = dy / maxScreenDy;
+
+            normX = Math.max(-1, Math.min(1, normX));
+            normY = Math.max(-1, Math.min(1, normY));
+
+            const newTargetX = normX * maxX;
+            const newTargetY = normY * maxY;
+
+            if (Math.abs(newTargetX - targetMoveX) > MOVE_THRESHOLD || Math.abs(newTargetY - targetMoveY) > MOVE_THRESHOLD) {
+                targetMoveX = newTargetX;
+                targetMoveY = newTargetY;
+            }
+        }
+
+        function animatePupils() {
+            lastMoveX += (targetMoveX - lastMoveX) * SMOOTHING_ALPHA;
+            lastMoveY += (targetMoveY - lastMoveY) * SMOOTHING_ALPHA;
+
+            pupils[0].style.transform = `translate(${lastMoveX}px, ${lastMoveY}px)`;
+            pupils[1].style.transform = `translate(${lastMoveX}px, ${lastMoveY}px)`;
+        }
+
+        function setupCanvasSize() {
+            overlay.width = MODEL_INPUT_WIDTH;
+            overlay.height = MODEL_INPUT_HEIGHT;
+        }
+
+        setupCanvasSize();
+
+        async function detectEyesLoop() {
+            if (video.readyState < 2) {
+                requestAnimationFrame(detectEyesLoop);
+                return;
+            }
+
+            const offscreen = document.createElement('canvas');
+            offscreen.width = MODEL_INPUT_WIDTH;
+            offscreen.height = MODEL_INPUT_HEIGHT;
+            const offCtx = offscreen.getContext('2d');
+
+            offCtx.save();
+            offCtx.scale(-1, 1);
+            offCtx.drawImage(video, -MODEL_INPUT_WIDTH, 0, MODEL_INPUT_WIDTH, MODEL_INPUT_HEIGHT);
+            offCtx.restore();
+
+            const blob = await new Promise(resolve => offscreen.toBlob(resolve, 'image/jpeg'));
+
+            const formData = new FormData();
+            formData.append('file', blob, 'frame.jpg');
+
+            try {
+                const res = await fetch('https://face-tracking-8tr7.onrender.com/face/', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+
+                ctx.clearRect(0, 0, overlay.width, overlay.height);
+
+                if (data.face) {
+                    lostDetectionTime = null;
+                    returningToCenter = false;
+
+                    const box = data.face;
+                    ctx.strokeStyle = 'lime';
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(box.x, box.y, box.width, box.height);
+                    ctx.font = '16px sans-serif';
+                    ctx.fillStyle = 'lime';
+                    ctx.fillText('Face', box.x, box.y > 20 ? box.y - 5 : box.y + 15);
+
+                    updatePupilsByScreenPosition(box.x, box.y, box.width, box.height);
+                } else {
+                    if (!lostDetectionTime) lostDetectionTime = performance.now();
+                    const elapsed = performance.now() - lostDetectionTime;
+
+                    if (elapsed >= WAIT_BEFORE_RESET_MS) {
+                        returningToCenter = true;
+                        targetMoveX = 0;
+                        targetMoveY = 0;
+                    }
+                }
+            } catch (e) {
+                console.error('Detection error:', e);
+                if (!lostDetectionTime) lostDetectionTime = performance.now();
+                const elapsed = performance.now() - lostDetectionTime;
+
+                if (elapsed >= WAIT_BEFORE_RESET_MS) {
+                    returningToCenter = true;
+                    targetMoveX = 0;
+                    targetMoveY = 0;
+                }
+            }
+
+            animatePupils();
+            requestAnimationFrame(detectEyesLoop);
+        }
+
+        window.addEventListener('resize', setupCanvasSize);
+
+        // Initialize both functionalities
+        window.addEventListener('load', () => {
+            const transcriber = new VoiceTranscriber();
+            detectEyesLoop();
+        });
+    </script>
+</body>
+</html>
